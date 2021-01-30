@@ -28,17 +28,29 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         NSAttributedString.Key.strokeColor: UIColor.black,
         NSAttributedString.Key.foregroundColor: UIColor.white,
         NSAttributedString.Key.font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 25)!,
-        NSAttributedString.Key.strokeWidth:  NSNumber(value: 0.4)
+        NSAttributedString.Key.strokeWidth:  NSNumber(value: -3)
     ]
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         
-        setInitialValues()
+        setInitialViewState()
+        
+        topTextField.delegate = topTextFieldDelegate
+        bottomTextField.delegate = bottomTextFieldDelegate
         
     }
 
+    func setInitialViewState()
+    {
+        configureViewElements(textField: topTextField, placeholderText: "TOP")
+        configureViewElements(textField: bottomTextField, placeholderText: "BOTTOM")
+        
+        imageView.image = nil
+        shareButton.isEnabled = false
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
@@ -52,41 +64,33 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         unsubscribeFromKeyboardNotifications()
     }
     
-    func setInitialValues()
+    func configureViewElements(textField: UITextField, placeholderText: String)
     {
-        topTextField.text = ""
-        topTextField.placeholder = "TOP"
-        topTextField.textAlignment = NSTextAlignment.center
-        topTextField.defaultTextAttributes = memeTextAttributes
-        
-        bottomTextField.text = ""
-        bottomTextField.placeholder = "BOTTOM"
-        bottomTextField.textAlignment = NSTextAlignment.center
-        bottomTextField.defaultTextAttributes = memeTextAttributes
-        
-        imageView.image = nil
-        
-        topTextField.delegate = topTextFieldDelegate
-        bottomTextField.delegate = bottomTextFieldDelegate
-        
-        shareButton.isEnabled = false
+            textField.text = ""
+            textField.placeholder = placeholderText
+            textField.defaultTextAttributes = memeTextAttributes
+            textField.textAlignment = .center
     }
     
     func subscribeToKeyboardNotifications() {
 
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: bottomTextField)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
         
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: bottomTextField)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
     }
     
     func unsubscribeFromKeyboardNotifications() {
 
-        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: bottomTextField)
-        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: bottomTextField)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
     }
     
     @objc func keyboardWillShow(_ notification:Notification) {
-        view.frame.origin.y -= getKeyboardHeight(notification)
+        
+        if bottomTextField.isFirstResponder
+        {
+            view.frame.origin.y -= getKeyboardHeight(notification)
+        }
     }
     
     @objc func keyboardWillHide(_ notification:Notification) {
@@ -101,35 +105,22 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         return keyboardSize.cgRectValue.height
     }
     
+    func pickAnImage(sourceType: UIImagePickerController.SourceType)
+    {
+            let imagePickerController = UIImagePickerController()
+            imagePickerController.delegate = self
+            imagePickerController.sourceType = sourceType
+            present(imagePickerController, animated: true, completion: nil)
+    }
+    
     @IBAction func pickAnImageFromAlbum(_ sender: Any)
     {
-        let pickerController = UIImagePickerController()
-        
-        pickerController.delegate = self
-        
-        pickerController.sourceType = .photoLibrary
-        
-        if (UIImagePickerController.isSourceTypeAvailable(UIImagePickerController.SourceType.camera))
-        {
-            pickerController.sourceType = UIImagePickerController.SourceType.camera
-        }
-        else
-        {
-            pickerController.sourceType = UIImagePickerController.SourceType.photoLibrary
-        }
-        
-        present(pickerController, animated: true, completion: nil)
+        pickAnImage(sourceType: .photoLibrary)
     }
     
     @IBAction func pickAnImageFromCamera(_ sender: Any)
     {
-        let pickerController = UIImagePickerController()
-        
-        pickerController.delegate = self
-        
-        pickerController.sourceType = .camera
-        
-        present(pickerController, animated: true, completion: nil)
+        pickAnImage(sourceType: .camera)
     }
     
     @IBAction func share(_ sender: Any)
@@ -155,7 +146,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     @IBAction func cancel(_ sender: Any)
     {
-        setInitialValues()
+        setInitialViewState()
     }
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
